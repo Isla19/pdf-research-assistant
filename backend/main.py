@@ -1,6 +1,20 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import json
+import os
+import time
+
 import pymupdf
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from google import genai
+from google.genai import types
+
+load_dotenv()
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Main model first, backup model second
+MODELS = ["gemini-flash-lite-latest", "gemini-flash-latest"]
+MAX_CHARS = 150000
 
 app = FastAPI()
 
@@ -11,6 +25,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Holds the paper that is currently uploaded
+PAPER = {}
+
+SUMMARY_PROMPT = """You are a research assistant. Read the research paper below and
+return a structured summary as JSON with exactly these keys:
+
+"title": the title of the paper
+"authors": the authors as a single string
+"abstract": a short version of the abstract in 3-5 sentences
+"problem_statement": what problem the paper tries to solve and why it matters
+"methodology": how the authors approached the problem (methods, data, models)
+"key_results": the most important findings, including numbers where available
+"conclusion": the main conclusions and any limitations or future work
+
+Use clear, simple language. Only use information found in the paper.
+
+PAPER TEXT:
+"""
+
+
+def ask_gemini(prompt, json_output=False):
+    """Send a prompt to Gemini. Retries, then switches to the backup model."""
+    config = None
+    if json_output:
+        config = types.GenerateContentConfig(response_mime_type="application/json")
+
+    for model in MODELS:
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=model, contents=prompt, config=config
+                )
+                return response.text
+            except Exception as error:
+                print(f"{model} attempt {attempt + 1} failed: {error}")
+                time.sleep(2 * (attempt + 1))
+
+    raise HTTPException(
+        status_code=503,
+        detail="The AI is busy right now. Please try again in a moment.",
+    )
+
 
 @app.get("/")
 def home():
@@ -18,18 +74,40 @@ def home():
 
 
 @app.post("/upload")
-async def upload(file: UploadFile = File(...)):
+def upload(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Please upload a PDF file")
 
-    data = await file.read()
-    doc = pymupdf.open(stream=data, filetype="pdf")
+    data = file.file.read()
+
+    try:
+        doc = pymupdf.open(stream=data, filetype="pdf")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not read this PDF file")
+
     pages = [page.get_text() for page in doc]
     text = "\n".join(pages)
+
+    if len(text.strip()) < 200:
+        raise HTTPException(
+            status_code=400,
+            detail="This PDF has no readable text. It may be a scanned document.",
+        )
+
+    raw = ask_gemini(SUMMARY_PROMPT + text[:MAX_CHARS], json_output=True)
+
+    try:
+        summary = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=500, detail="Could not understand the AI response. Try again."
+        )
+
+    PAPER.clear()
+    PAPER.update({"filename": file.filename, "pages": pages, "summary": summary})
 
     return {
         "filename": file.filename,
         "num_pages": len(pages),
-        "characters": len(text),
-        "preview": text[:500],
+        "summary": summary,
     }
