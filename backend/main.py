@@ -8,6 +8,8 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from google.genai import types
+from pydantic import BaseModel
+from rag import find_relevant_chunks, make_chunks
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -104,10 +106,41 @@ def upload(file: UploadFile = File(...)):
         )
 
     PAPER.clear()
-    PAPER.update({"filename": file.filename, "pages": pages, "summary": summary})
-
+    chunks = make_chunks(pages)
+    PAPER.update({"filename": file.filename, "chunks": chunks, "summary": summary})
     return {
         "filename": file.filename,
         "num_pages": len(pages),
+        "num_chunks": len(chunks),
         "summary": summary,
     }
+
+class Question(BaseModel):
+    question: str
+
+
+@app.post("/ask")
+def ask(body: Question):
+    if not PAPER:
+        raise HTTPException(status_code=400, detail="Please upload a paper first.")
+
+    question = body.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Please type a question.")
+
+    matches = find_relevant_chunks(question, PAPER["chunks"])
+    context = "\n\n".join(f"[Page {c['page']}]\n{c['text']}" for c in matches)
+
+    prompt = f"""You are a helpful research assistant. Answer the question using ONLY
+the excerpts from the paper below. If the answer is not in the excerpts, say that
+the paper does not seem to cover it. Be clear and concise, and mention page
+numbers like (page 3) when you use an excerpt.
+
+EXCERPTS:
+{context}
+
+QUESTION: {question}"""
+
+    answer = ask_gemini(prompt)
+    pages = sorted({c["page"] for c in matches})
+    return {"answer": answer, "pages": pages}
