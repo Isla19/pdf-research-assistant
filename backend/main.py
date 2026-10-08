@@ -40,6 +40,7 @@ return a structured summary as JSON with exactly these keys:
 "methodology": how the authors approached the problem (methods, data, models)
 "key_results": the most important findings, including numbers where available
 "conclusion": the main conclusions and any limitations or future work
+"suggested_questions": a list of 4 short, interesting questions a reader could ask about this paper
 
 Use clear, simple language. Only use information found in the paper.
 
@@ -117,6 +118,7 @@ def upload(file: UploadFile = File(...)):
 
 class Question(BaseModel):
     question: str
+    history: list[dict] = []
 
 
 @app.post("/ask")
@@ -128,13 +130,28 @@ def ask(body: Question):
     if not question:
         raise HTTPException(status_code=400, detail="Please type a question.")
 
-    matches = find_relevant_chunks(question, PAPER["chunks"])
+    recent = body.history[-6:]
+
+    # Include the previous user question so follow-ups still find the right excerpts
+    last_user = next(
+        (m.get("text", "") for m in reversed(recent) if m.get("role") == "user"), ""
+    )
+    matches = find_relevant_chunks(f"{last_user} {question}", PAPER["chunks"])
     context = "\n\n".join(f"[Page {c['page']}]\n{c['text']}" for c in matches)
 
-    prompt = f"""You are a helpful research assistant. Answer the question using ONLY
-the excerpts from the paper below. If the answer is not in the excerpts, say that
-the paper does not seem to cover it. Be clear and concise, and mention page
-numbers like (page 3) when you use an excerpt.
+    conversation = "\n".join(
+        f"{'User' if m.get('role') == 'user' else 'Assistant'}: {m.get('text', '')}"
+        for m in recent
+    )
+
+    prompt = f"""You are a friendly research assistant having a spoken conversation
+about a paper. Answer using ONLY the excerpts below. If the answer is not in the
+excerpts, say the paper does not seem to cover it. Your answer will be read aloud,
+so reply in 2 to 4 short plain sentences, with no bullet points, asterisks or
+markdown. Mention page numbers naturally, like "on page 3".
+
+EARLIER CONVERSATION:
+{conversation or "(none yet)"}
 
 EXCERPTS:
 {context}
