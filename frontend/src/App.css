@@ -209,3 +209,23 @@ button.page-chip:hover { border-color: var(--accent); }
 }
 .voice-dot { flex-shrink: 0; }
 .voice-text { min-width: 0; overflow-wrap: anywhere; }
+
+/* ---------- Upload progress ---------- */
+.progress {
+  max-width: 540px; margin: 0 auto; padding: 26px 28px; text-align: left;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; box-shadow: var(--shadow);
+}
+.progress-track { height: 8px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; }
+.progress-fill {
+  height: 100%; border-radius: 999px; transition: width 0.6s ease;
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft), var(--accent));
+  background-size: 200% 100%; animation: slide 1.6s linear infinite;
+}
+@keyframes slide { to { background-position: -200% 0; } }
+.progress-steps { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; }
+.progress-steps li { color: var(--muted); font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
+.progress-steps li.done { color: var(--text); }
+.progress-steps li.active { color: var(--accent); font-weight: 600; }
+.progress-mark { width: 18px; text-align: center; }
+.progress-note { margin: 16px 0 0; color: var(--muted); font-size: 0.8rem; }

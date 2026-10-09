@@ -17,10 +17,41 @@ function formatSize(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+const STEPS = [
+  ["upload", "Uploading file"],
+  ["extract", "Extracting text"],
+  ["chunk", "Splitting into sections"],
+  ["summary", "Building summary"],
+];
+
+function ProgressSteps({ step }) {
+  const index = Math.max(0, STEPS.findIndex(([key]) => key === step));
+  const percent = Math.round(((index + 0.5) / STEPS.length) * 100);
+
+  return (
+    <div className="progress">
+      <div className="progress-track">
+        <div className="progress-fill" style={{ width: `${percent}%` }} />
+      </div>
+      <ul className="progress-steps">
+        {STEPS.map(([key, label], i) => (
+          <li key={key} className={i < index ? "done" : i === index ? "active" : ""}>
+            <span className="progress-mark">{i < index ? "✓" : i === index ? "●" : "○"}</span>
+            {label}
+            {i === index ? "..." : ""}
+          </li>
+        ))}
+      </ul>
+      <p className="progress-note">The summary step can take 10 to 30 seconds.</p>
+    </div>
+  );
+}
+
 export default function App() {
   const [paper, setPaper] = useState(null);
   const [fileInfo, setFileInfo] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState("");
   const [error, setError] = useState("");
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
 
@@ -59,13 +90,14 @@ export default function App() {
     setShowPdf(true);
   }
 
-  async function handleUpload(event) {
+    async function handleUpload(event) {
     const file = event.target.files[0];
     event.target.value = "";
     if (!file) return;
 
     setLoading(true);
-      voice.stop();
+    setStep("upload");
+    voice.stop();
     setError("");
     setPaper(null);
     setMessages([]);
@@ -77,9 +109,38 @@ export default function App() {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch(`${API}/upload`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Upload failed");
-      setPaper(data);
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Upload failed");
+      }
+
+      // The server sends one JSON message per line as each stage finishes
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let result = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const msg = JSON.parse(line);
+          if (msg.type === "step") setStep(msg.step);
+          else if (msg.type === "error") throw new Error(msg.detail);
+          else if (msg.type === "done") result = msg.result;
+        }
+      }
+
+      if (!result) throw new Error("The upload ended unexpectedly. Please try again.");
+
+      setPaper(result);
       setFileInfo({ size: file.size, uploadedAt: new Date() });
       setPdfVersion((v) => v + 1);
     } catch (err) {
@@ -90,6 +151,7 @@ export default function App() {
       );
     } finally {
       setLoading(false);
+      setStep("");
     }
   }
 
@@ -163,12 +225,14 @@ export default function App() {
           <p className="subtitle">
             Upload a research paper to get a structured summary, then chat with it.
           </p>
-          <label className="upload">
-            {loading
-              ? "Reading your paper... this can take up to a minute"
-              : "Click to choose a PDF"}
-            <input type="file" accept=".pdf" onChange={handleUpload} disabled={loading} hidden />
-          </label>
+          {loading ? (
+            <ProgressSteps step={step} />
+          ) : (
+            <label className="upload">
+              Click to choose a PDF
+              <input type="file" accept=".pdf" onChange={handleUpload} hidden />
+            </label>
+          )}
           {error && <p className="error">{error}</p>}
           <div className="feature-row">
             <span className="feature-pill">Structured summary</span>

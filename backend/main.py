@@ -6,7 +6,7 @@ import pymupdf
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -83,45 +83,75 @@ def upload(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Please upload a PDF file")
 
     data = file.file.read()
+    filename = file.filename
+
     if len(data) > 25 * 1024 * 1024:
         raise HTTPException(
             status_code=400,
             detail="This file is larger than 25 MB. Please upload a smaller PDF.",
-        )    
-
-    try:
-        doc = pymupdf.open(stream=data, filetype="pdf")
-    except Exception:
-        raise HTTPException(status_code=400, detail="Could not read this PDF file")
-
-    pages = [page.get_text() for page in doc]
-    text = "\n".join(pages)
-
-    if len(text.strip()) < 200:
-        raise HTTPException(
-            status_code=400,
-            detail="This PDF has no readable text. It may be a scanned document.",
         )
 
-    raw = ask_gemini(SUMMARY_PROMPT + text[:MAX_CHARS], json_output=True)
+    def event(payload):
+        return json.dumps(payload) + "\n"
 
-    try:
-        summary = json.loads(raw)
-    except json.JSONDecodeError:
-        raise HTTPException(
-            status_code=500, detail="Could not understand the AI response. Try again."
-        )
+    def process():
+        try:
+            yield event({"type": "step", "step": "extract"})
+            try:
+                doc = pymupdf.open(stream=data, filetype="pdf")
+            except Exception:
+                yield event({"type": "error", "detail": "Could not read this PDF file"})
+                return
 
-    PAPER.clear()
-    chunks = make_chunks(pages)
-    PAPER.update({"filename": file.filename, "chunks": chunks, "summary": summary, "pdf": data})
-    return {
-        "filename": file.filename,
-        "num_pages": len(pages),
-        "num_chunks": len(chunks),
-        "num_words": len(text.split()),
-        "summary": summary,
-    }
+            pages = [page.get_text() for page in doc]
+            text = "\n".join(pages)
+            if len(text.strip()) < 200:
+                yield event(
+                    {
+                        "type": "error",
+                        "detail": "This PDF has no readable text. It may be a scanned document.",
+                    }
+                )
+                return
+
+            yield event({"type": "step", "step": "chunk"})
+            chunks = make_chunks(pages)
+
+            yield event({"type": "step", "step": "summary"})
+            raw = ask_gemini(SUMMARY_PROMPT + text[:MAX_CHARS], json_output=True)
+            try:
+                summary = json.loads(raw)
+            except json.JSONDecodeError:
+                yield event(
+                    {"type": "error", "detail": "Could not understand the AI response. Try again."}
+                )
+                return
+
+            PAPER.clear()
+            PAPER.update(
+                {"filename": filename, "chunks": chunks, "summary": summary, "pdf": data}
+            )
+
+            yield event(
+                {
+                    "type": "done",
+                    "result": {
+                        "filename": filename,
+                        "num_pages": len(pages),
+                        "num_chunks": len(chunks),
+                        "num_words": len(text.split()),
+                        "summary": summary,
+                    },
+                }
+            )
+        except HTTPException as error:
+            yield event({"type": "error", "detail": error.detail})
+        except Exception:
+            yield event(
+                {"type": "error", "detail": "Something went wrong while reading this paper."}
+            )
+
+    return StreamingResponse(process(), media_type="application/x-ndjson")
 
 class Question(BaseModel):
     question: str
