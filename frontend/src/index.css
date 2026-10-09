@@ -1,0 +1,42 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap");
+
+:root,
+[data-theme="dark"] {
+  --bg: #0e1320;
+  --bg-image: none;
+  --surface: #161d2f;
+  --border: #263049;
+  --text: #e8ebf5;
+  --muted: #9aa4c0;
+  --accent: #7c9cff;
+  --accent-soft: rgba(124, 156, 255, 0.12);
+  --danger: #ff8a80;
+  --danger-bg: rgba(255, 138, 128, 0.12);
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] {
+  --bg: #f6f7fd;
+  --bg-image: linear-gradient(180deg, #e3e8ff 0%, #f6f7fd 360px);
+  --surface: #ffffff;
+  --border: #d9def5;
+  --text: #14193a;
+  --muted: #55618a;
+  --accent: #4f46e5;
+  --accent-soft: rgba(79, 70, 229, 0.08);
+  --danger: #b3261e;
+  --danger-bg: #fdecea;
+  --shadow: 0 4px 18px rgba(55, 48, 163, 0.1);
+}
+
+body {
+  margin: 0;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  background-color: var(--bg);
+  background-image: var(--bg-image);
+  background-repeat: no-repeat;
+  color: var(--text);
+  transition: background-color 0.25s, color 0.25s;
+}

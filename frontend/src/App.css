@@ -1,0 +1,185 @@
+* { box-sizing: border-box; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 0.875rem;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); }
+
+.error {
+  color: var(--danger); background: var(--danger-bg);
+  padding: 12px 16px; border-radius: 12px; margin-top: 16px;
+}
+
+/* ---------- Start screen ---------- */
+.landing {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 40px 20px;
+}
+.landing-top { position: fixed; top: 16px; right: 20px; z-index: 10; }
+.hero { width: 100%; max-width: 620px; }
+.hero h1 {
+  font-family: "Fraunces", Georgia, serif; font-size: 3rem; line-height: 1.15;
+  margin: 0 0 14px;
+}
+.subtitle { font-size: 1.1rem; color: var(--muted); margin: 0 0 34px; }
+
+.upload {
+  display: block; text-align: center; padding: 44px 20px;
+  border: 2px dashed var(--border); border-radius: 18px; background: var(--surface);
+  cursor: pointer; font-weight: 600; color: var(--accent);
+  transition: border-color 0.2s, background 0.2s; box-shadow: var(--shadow);
+}
+.upload:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+.feature-row { margin-top: 24px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.feature-pill {
+  font-size: 0.8rem; font-weight: 600; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 14px;
+}
+
+/* ---------- Workspace ---------- */
+.workspace {
+  height: 100vh; max-width: 1600px; margin: 0 auto; padding: 16px 24px 20px;
+  display: flex; flex-direction: column;
+}
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; }
+.brand { font-family: "Fraunces", Georgia, serif; font-size: 1.4rem; margin: 0; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+.infobar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px;
+  padding: 10px 16px; margin-bottom: 16px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px;
+  font-size: 0.85rem; color: var(--muted);
+}
+.infobar .file {
+  color: var(--text); font-weight: 600; max-width: 360px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.workspace-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.workspace-body.with-pdf { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+.assistant { min-height: 0; display: flex; flex-direction: column; }
+.columns {
+  flex: 1; min-height: 0; display: grid; gap: 20px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+.with-pdf .columns { grid-template-columns: minmax(0, 1fr); }
+
+/* Tabs (shown only when the PDF is open) */
+.tabs {
+  display: flex; gap: 4px; padding: 4px; margin-bottom: 12px; align-self: flex-start;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+}
+.tab {
+  background: none; border: none; color: var(--muted); padding: 7px 24px;
+  border-radius: 999px; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+}
+.tab.active { background: var(--accent); color: #fff; }
+
+/* ---------- Summary ---------- */
+.summary-pane { min-height: 0; overflow-y: auto; padding-right: 8px; }
+.paper-title {
+  font-family: "Fraunces", Georgia, serif; font-size: 1.6rem; line-height: 1.3; margin: 0 0 8px;
+}
+.authors { color: var(--muted); margin: 0 0 6px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--accent); border-radius: 14px;
+  padding: 2px 22px 18px; margin-top: 14px; box-shadow: var(--shadow);
+}
+.card h3 {
+  font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--accent); margin: 18px 0 8px;
+}
+.card p { margin: 0; line-height: 1.7; font-size: 1rem; }
+
+/* ---------- Chat ---------- */
+.chat-pane {
+  min-height: 0; display: flex; flex-direction: column; padding: 18px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: var(--shadow);
+}
+.chat-pane h2 { font-family: "Fraunces", Georgia, serif; font-size: 1.3rem; margin: 0 0 12px; }
+
+.suggestions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+.suggestions-label { margin: 0; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+.chip {
+  background: var(--accent-soft); color: var(--accent); border: 1px solid var(--border);
+  border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 0.9rem;
+  text-align: left; cursor: pointer; transition: border-color 0.2s;
+}
+.chip:hover:not(:disabled) { border-color: var(--accent); }
+.chip:disabled { opacity: 0.5; cursor: default; }
+
+.chat-box {
+  flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+  gap: 12px; padding: 4px 4px 4px 0;
+}
+.chat-empty { color: var(--muted); text-align: center; margin: auto; }
+
+.bubble { max-width: 85%; padding: 10px 16px; border-radius: 16px; line-height: 1.6; }
+.bubble p { margin: 0; }
+.bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.bubble.assistant {
+  align-self: flex-start; background: var(--accent-soft); border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.bubble-error { color: var(--danger); background: var(--danger-bg); border-color: transparent; }
+.bubble-notfound { border-style: dashed; }
+.notfound-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px;
+}
+.typing { color: var(--muted); font-style: italic; }
+
+.sources { margin-top: 8px; font-size: 0.78rem; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+button.page-chip {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+  padding: 1px 10px; color: var(--accent); font: inherit; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer;
+}
+button.page-chip:hover { border-color: var(--accent); }
+
+.chat-input { display: flex; gap: 10px; margin-top: 12px; }
+.chat-input input {
+  flex: 1; min-width: 0; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 999px; padding: 12px 18px; font: inherit; outline: none;
+}
+.chat-input input:focus { border-color: var(--accent); }
+.chat-input button {
+  background: var(--accent); color: #fff; border: none; border-radius: 999px;
+  padding: 0 24px; font: inherit; font-weight: 600; cursor: pointer;
+}
+.chat-input button:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- PDF panel ---------- */
+.pdf-panel {
+  min-height: 0; display: flex; flex-direction: column; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.pdf-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  font-size: 0.85rem; font-weight: 600; color: var(--muted);
+}
+.pdf-header button { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; }
+.pdf-panel iframe { flex: 1; width: 100%; border: none; background: #fff; }
+
+/* ---------- Small screens: let the page scroll normally ---------- */
+@media (max-width: 1000px) {
+  .workspace { height: auto; min-height: 100vh; padding: 14px; }
+  .workspace-body, .workspace-body.with-pdf { display: block; }
+  .columns { display: block; }
+  .summary-pane { overflow: visible; padding-right: 0; }
+  .chat-pane { height: 70vh; margin-top: 16px; }
+  .with-pdf .chat-pane { margin-top: 0; }
+  .pdf-panel { height: 75vh; margin-bottom: 16px; }
+  .hero h1 { font-size: 2.2rem; }
+}

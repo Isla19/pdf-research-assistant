@@ -6,6 +6,7 @@ import pymupdf
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -82,6 +83,11 @@ def upload(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Please upload a PDF file")
 
     data = file.file.read()
+    if len(data) > 25 * 1024 * 1024:
+        raise HTTPException(
+            status_code=400,
+            detail="This file is larger than 25 MB. Please upload a smaller PDF.",
+        )    
 
     try:
         doc = pymupdf.open(stream=data, filetype="pdf")
@@ -108,11 +114,12 @@ def upload(file: UploadFile = File(...)):
 
     PAPER.clear()
     chunks = make_chunks(pages)
-    PAPER.update({"filename": file.filename, "chunks": chunks, "summary": summary})
+    PAPER.update({"filename": file.filename, "chunks": chunks, "summary": summary, "pdf": data})
     return {
         "filename": file.filename,
         "num_pages": len(pages),
         "num_chunks": len(chunks),
+        "num_words": len(text.split()),
         "summary": summary,
     }
 
@@ -146,7 +153,7 @@ def ask(body: Question):
 
     prompt = f"""You are a friendly research assistant having a spoken conversation
 about a paper. Answer using ONLY the excerpts below. If the answer is not in the
-excerpts, say the paper does not seem to cover it. Your answer will be read aloud,
+excerpts, start your reply with NOT_FOUND: and then politely say the paper does not seem to cover it. Your answer will be read aloud,
 so reply in 2 to 4 short plain sentences, with no bullet points, asterisks or
 markdown. Mention page numbers naturally, like "on page 3".
 
@@ -158,6 +165,18 @@ EXCERPTS:
 
 QUESTION: {question}"""
 
-    answer = ask_gemini(prompt)
-    pages = sorted({c["page"] for c in matches})
-    return {"answer": answer, "pages": pages}
+    answer = ask_gemini(prompt).strip()
+    found = not answer.startswith("NOT_FOUND")
+    answer = answer.replace("NOT_FOUND:", "").replace("NOT_FOUND", "").strip()
+    pages = sorted({c["page"] for c in matches}) if found else []
+    return {"answer": answer, "pages": pages, "found": found}
+
+@app.get("/pdf")
+def get_pdf():
+    if not PAPER:
+        raise HTTPException(status_code=404, detail="No paper uploaded yet.")
+    return Response(
+        content=PAPER["pdf"],
+        media_type="application/pdf",
+        headers={"Content-Disposition": "inline", "Cache-Control": "no-store"},
+    )
