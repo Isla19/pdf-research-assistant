@@ -28,6 +28,7 @@
 
 .upload {
   display: block; text-align: center; padding: 44px 20px;
+  max-width: 600px; margin: 0 auto;
   border: 2px dashed var(--border); border-radius: 18px; background: var(--surface);
   cursor: pointer; font-weight: 600; color: var(--accent);
   transition: border-color 0.2s, background 0.2s; box-shadow: var(--shadow);
@@ -183,3 +184,28 @@ button.page-chip:hover { border-color: var(--accent); }
   .pdf-panel { height: 75vh; margin-bottom: 16px; }
   .hero h1 { font-size: 2.2rem; }
 }
+
+.bubble { flex-shrink: 0; }
+
+/* ---------- Voice ---------- */
+.chat-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.chat-head h2 { margin: 0; }
+.voice-note { font-size: 0.78rem; color: var(--muted); }
+.btn-live { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.voice-bar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 12px;
+  border-radius: 12px; background: var(--accent-soft); border: 1px solid var(--border);
+  font-size: 0.9rem; font-weight: 600; color: var(--accent);
+}
+.voice-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.voice-bar.thinking .voice-dot { animation-duration: 0.6s; }
+@keyframes pulse {
+  0%, 100% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+.voice-dot { flex-shrink: 0; }
+.voice-text { min-width: 0; overflow-wrap: anywhere; }

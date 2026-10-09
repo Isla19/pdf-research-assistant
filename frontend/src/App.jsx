@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import useVoice, { voiceSupported } from "./useVoice";
 
 const API = "http://127.0.0.1:8000";
 
@@ -27,6 +28,12 @@ export default function App() {
   const [input, setInput] = useState("");
   const [asking, setAsking] = useState(false);
   const chatBoxRef = useRef(null);
+  const voice = useVoice((text) => askQuestion(text));
+
+  function startVoice() {
+    setTab("chat");
+    voice.start();
+  }
 
   const [showPdf, setShowPdf] = useState(false);
   const [tab, setTab] = useState("summary");
@@ -58,6 +65,7 @@ export default function App() {
     if (!file) return;
 
     setLoading(true);
+      voice.stop();
     setError("");
     setPaper(null);
     setMessages([]);
@@ -85,7 +93,7 @@ export default function App() {
     }
   }
 
-  async function askQuestion(text) {
+    async function askQuestion(text) {
     const question = text.trim();
     if (!question || asking) return;
 
@@ -115,6 +123,7 @@ export default function App() {
           notFound: data.found === false,
         },
       ]);
+      voice.speak(data.answer);
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -127,6 +136,7 @@ export default function App() {
               : err.message,
         },
       ]);
+      voice.speak("Sorry, something went wrong. Please try again.");
     } finally {
       setAsking(false);
     }
@@ -189,7 +199,31 @@ export default function App() {
 
   const chatPane = (
     <section className="chat-pane">
-      <h2>Chat with the paper</h2>
+      <div className="chat-head">
+        <h2>Chat with the paper</h2>
+        {voiceSupported ? (
+          <button
+            className={voice.active ? "btn btn-live" : "btn"}
+            onClick={() => (voice.active ? voice.stop() : startVoice())}
+          >
+            {voice.active ? "⏹ End voice chat" : "🎙 Voice conversation"}
+          </button>
+        ) : (
+          <span className="voice-note">Voice works in Chrome or Edge</span>
+        )}
+      </div>
+      {voice.active && (
+        <div className={`voice-bar ${voice.status}`}>
+          <span className="voice-dot" />
+          <span className="voice-text">
+            {voice.status === "listening" &&
+              (voice.heard ? `${voice.heard} ...` : "Listening... go ahead and ask")}
+            {voice.status === "thinking" && "Thinking..."}
+            {voice.status === "speaking" && "Speaking... the text is shown below"}
+          </span>
+        </div>
+      )}
+      {voice.error && <p className="error">{voice.error}</p>}
 
       {messages.length === 0 && suggestions.length > 0 && (
         <div className="suggestions">
