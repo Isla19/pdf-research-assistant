@@ -6,7 +6,18 @@ import useVoice, { voiceSupported } from "./useVoice";
 import "./App.css";
 import logo from "./assets/logo.png";
 
-const API = "http://127.0.0.1:8000";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
+// Each browser tab gets its own id, so visitors don't share papers
+function getSessionId() {
+  let id = sessionStorage.getItem("session");
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem("session", id);
+  }
+  return id;
+}
+const SESSION_ID = getSessionId();
 
 const SECTIONS = [
   ["abstract", "Abstract"],
@@ -209,7 +220,11 @@ export default function App() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("depth", depth);
-      const res = await fetch(`${API}/upload`, { method: "POST", body: formData });
+      const res = await fetch(`${API}/upload`, {
+        method: "POST",
+        headers: { "X-Session-Id": SESSION_ID },
+        body: formData,
+      });
 
       if (!res.ok) {
         const data = await res.json();
@@ -282,7 +297,7 @@ export default function App() {
     try {
       const res = await fetch(`${API}/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Session-Id": SESSION_ID },
         body: JSON.stringify({ question, history }),
       });
 
