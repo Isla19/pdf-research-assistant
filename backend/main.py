@@ -281,8 +281,24 @@ def ask(body: Question, x_session_id: str = Header(default="")):
     last_user = next(
         (m.get("text", "") for m in reversed(recent) if m.get("role") == "user"), ""
     )
-    matches = find_relevant_chunks(f"{last_user} {question}", paper["chunks"])
+    matches = find_relevant_chunks(f"{last_user} {question}", paper["chunks"], top_k=8)
     context = "\n\n".join(c["text"] for c in matches)
+
+    # A short overview of the whole document, for broad questions
+    summary = paper["summary"]
+    overview = "\n".join(
+        f"{label}: {summary[key]}"
+        for key, label in [
+            ("title", "Title"),
+            ("tldr", "Overview"),
+            ("abstract", "Abstract"),
+            ("problem_statement", "Problem"),
+            ("methodology", "Approach"),
+            ("key_results", "Key results"),
+            ("conclusion", "Conclusion"),
+        ]
+        if summary.get(key)
+    )
 
     conversation = "\n".join(
         f"{'User' if m.get('role') == 'user' else 'Assistant'}: {m.get('text', '')}"
@@ -290,26 +306,32 @@ def ask(body: Question, x_session_id: str = Header(default="")):
     )
 
     prompt = f"""You are a friendly, knowledgeable research assistant. Answer the
-question using ONLY the excerpts below. If the answer is not in the excerpts, start
-your reply with NOT_FOUND: and then politely say the paper does not seem to cover it.
+question using ONLY the document overview and the excerpts below. For broad questions
+(for example summarising, comparing or listing key points), combine the overview and
+the excerpts. Only start your reply with NOT_FOUND: when neither of them contains
+anything relevant to the question. If they contain partial information, answer with
+what is there and say what is not covered.
 
 Formatting rules:
 - Write clear, well-organised markdown: short paragraphs, bullet lists, bold for key
   terms, and a markdown table whenever you compare items or list structured data.
-- Never mention page numbers, excerpts or sources in your answer.
+- Never mention page numbers, excerpts, the overview or sources in your answer.
 - Keep simple answers short (2 to 4 sentences). Give more detail only when asked.
 - The question may come from speech recognition and contain misheard words, so use
-  the paper's context to work out what the user most likely meant.
+  the document's context to work out what the user most likely meant.
 
 EARLIER CONVERSATION:
 {conversation or "(none yet)"}
+
+DOCUMENT OVERVIEW:
+{overview}
 
 EXCERPTS:
 {context}
 
 QUESTION: {question}"""
 
-    cited_pages = sorted({c["page"] for c in matches})
+    cited_pages = sorted({c["page"] for c in matches[:4]})
     return StreamingResponse(
         stream_answer(prompt, cited_pages), media_type="application/x-ndjson"
     )

@@ -40,8 +40,8 @@ flowchart LR
 ```mermaid
 flowchart LR
     A["Question + last 6 messages + session id"] --> B["FastAPI: POST /ask"]
-    B --> C["Keyword retrieval: top 4 chunks"]
-    C --> D["RAG prompt: excerpts + history + question"]
+    B --> C["Keyword retrieval: top 8 chunks"]
+    C --> D["RAG prompt: overview + excerpts + history + question"]
     D --> E["Gemini streams the answer"]
     E --> F["React renders the markdown as it arrives"]
     C --> G["Cited pages kept behind a Sources button"]
@@ -53,8 +53,8 @@ flowchart LR
 1. **Parsing:** PyMuPDF reads the PDF and extracts the text of every page.
 2. **Chunking:** each page is cut into chunks of about 1000 characters with 200 characters of overlap. Every chunk remembers its page number.
 3. **Summary:** the text (up to 150,000 characters) goes to Gemini with a prompt that asks for JSON: a short overview, title, authors, the five sections and four suggested questions. The chosen detail level (Quick, Standard or Detailed) sets how long each section should be.
-4. **Retrieval:** the question (together with the previous user question, so follow-ups still find the right text) is split into words, common words are removed, and each chunk is scored by how many of those words it contains. Rarer words count for more (a log-scaled, TF-IDF style weight). The top 4 chunks are kept.
-5. **RAG prompt:** the 4 chunks, the last 6 messages of the conversation and the question go to Gemini. It is told to answer only from the excerpts, to format with markdown, to never mention page numbers in the text, and to start with `NOT_FOUND` when the paper does not cover the question.
+4. **Retrieval:** the question (together with the previous user question, so follow-ups still find the right text) is split into words, common words are removed, and each chunk is scored by how many of those words it contains. Rarer words count for more (a log-scaled, TF-IDF style weight). The top 8 chunks are kept.
+5. **RAG prompt:** a short overview of the document (built from the summary), the 8 chunks, the last 6 messages of the conversation and the question go to Gemini. It is told to answer only from the excerpts, to format with markdown, to never mention page numbers in the text, and to start with `NOT_FOUND` when the paper does not cover the question.
 6. **Streaming response:** the answer is sent back as newline-delimited JSON messages over a normal HTTP response: first the cited pages and whether the answer was found, then the text in pieces. The browser appends the pieces as they arrive.
 7. **PDF viewer:** the PDF is displayed in the browser from the file you picked, using PDF.js, so the server does not need to store or send the PDF back.
 
