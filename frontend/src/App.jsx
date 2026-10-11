@@ -5,6 +5,7 @@ import PdfViewer from "./PdfViewer";
 import useVoice, { voiceSupported } from "./useVoice";
 import "./App.css";
 import logo from "./assets/logo.png";
+import Icon from "./Icons";
 
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
@@ -20,11 +21,11 @@ function getSessionId() {
 const SESSION_ID = getSessionId();
 
 const SECTIONS = [
-  ["abstract", "Abstract"],
-  ["problem_statement", "Problem Statement"],
-  ["methodology", "Methodology"],
-  ["key_results", "Key Results"],
-  ["conclusion", "Conclusion"],
+  ["abstract", "Abstract", "file"],
+  ["problem_statement", "Problem Statement", "help"],
+  ["methodology", "Methodology", "tool"],
+  ["key_results", "Key Results", "chart"],
+  ["conclusion", "Conclusion", "check"],
 ];
 
 const DEPTHS = [
@@ -348,8 +349,18 @@ export default function App() {
   }
 
   const themeButton = (
-    <button className="btn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-      {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+    <button
+      className="theme-switch"
+      role="switch"
+      aria-checked={theme === "dark"}
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      title="Switch between light and dark mode"
+    >
+      <Icon name={theme === "dark" ? "moon" : "sun"} size={16} />
+      <span className="ts-track">
+        <span className="ts-thumb" />
+      </span>
+      <span className="ts-label">{theme === "dark" ? "Dark" : "Light"}</span>
     </button>
   );
 
@@ -522,22 +533,37 @@ export default function App() {
 
   const summaryPane = (
     <section className="pane">
-      <h2 className="pane-title">Summary</h2>
+      <h2 className="pane-title">
+        <span className="ico-badge">
+          <Icon name="sparkles" />
+        </span>
+        Summary
+      </h2>
       <div className="pane-scroll">
         <h2 className="paper-title">{summary.title}</h2>
         <p className="authors">{summary.authors}</p>
 
         {summary.tldr && (
           <div className="tldr">
-            <span className="tldr-label">In short</span>
-            <p>{summary.tldr}</p>
+            <span className="ico-badge">
+              <Icon name="zap" />
+            </span>
+            <div className="card-body">
+              <span className="tldr-label">In short</span>
+              <p>{summary.tldr}</p>
+            </div>
           </div>
         )}
 
-        {SECTIONS.map(([key, label]) => (
+        {SECTIONS.map(([key, label, icon]) => (
           <div className="card" key={key}>
-            <h3>{label}</h3>
-            <p>{summary[key]}</p>
+            <span className="ico-badge">
+              <Icon name={icon} />
+            </span>
+            <div className="card-body">
+              <h3>{label}</h3>
+              <p>{summary[key]}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -546,7 +572,12 @@ export default function App() {
 
   const chatPane = (
     <section className="pane">
-      <h2 className="pane-title">Chat with the paper</h2>
+      <h2 className="pane-title">
+        <span className="ico-badge">
+          <Icon name="chat" />
+        </span>
+        Chat with the paper
+      </h2>
       <div className="chat-area">
         <div className="chat-box" ref={chatBoxRef}>
           {messages.length === 0 && (
@@ -639,7 +670,7 @@ export default function App() {
               title={voice.active ? "End voice conversation" : "Start voice conversation"}
               onClick={() => (voice.active ? voice.stop() : startVoice())}
             >
-              🎙
+             <Icon name="mic" size={20} />
             </button>
           )}
           <input
@@ -649,6 +680,7 @@ export default function App() {
             disabled={asking}
           />
           <button type="submit" className="send" disabled={asking || !input.trim()}>
+            <Icon name="send" size={16} />
             Send
           </button>
         </form>
